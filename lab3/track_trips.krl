@@ -40,5 +40,25 @@ ruleset track_trips {
   }
 
 
+
+
+
+  rule trip_fuel_usage {
+    select when explicit trip_processed
+    pre {
+      mileage_value = event:attr("mileage")
+      vin = event:attr("vin")
+
+    }
+
+
+
+
+    send_directive("results") with miles_driven = 200 gas_used = 6
+
+  }
+
+
+
 }
 
