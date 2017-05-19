@@ -11,7 +11,7 @@ ruleset track_trips {
 
 
   rule process_trips {
-    select when car new_trip 
+    select when car new_trip where mileage > 0
     pre {
       mileage_value = event:attr("mileage")
     }
