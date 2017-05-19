@@ -3,7 +3,7 @@ ruleset io.picolabs.use_edmund_api {
     use module io.picolabs.edmund_keys
       provides decode_vin
 
-    configure using account_sid = keys:edmund_keys("account_sid")
+    configure using account_sid = keys:edmund("account_sid")
       provides decode_vin
   }
 
