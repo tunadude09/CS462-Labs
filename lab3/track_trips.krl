@@ -1,10 +1,10 @@
 ruleset track_trips {
   meta {
-
+    provides long_trips
   }
 
   global {
-
+    long_trips = 100
   }
 
 
@@ -21,6 +21,18 @@ ruleset track_trips {
       raise explicit event "trip_processed"
          attributes event:attrs()
     }
+  }
+
+
+  rule find_long_trips {
+    select when explicit trip_processed
+    pre {
+      mileage_value = event:attr("mileage")
+    }
+
+    if mileage_value > long_trips then
+      send_directive("bob") with bob_length = mileage_value
+
   }
 
 
