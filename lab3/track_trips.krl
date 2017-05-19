@@ -23,22 +23,6 @@ ruleset track_trips {
     }
   }
 
-  rule find_long_trips {
-    select when explicit trip_processed
-    pre {
-      mileage_value = event:attr("mileage")
-    }
-    send_directive("trip") with trip_length = mileage_value
-  }
-
-
-  rule trip_fuel_usage {
-    select when car trip_processed
-    pre {
-      mileage_value = event:attr("mileage")
-    }
-    send_directive("trip") with trip_length = mileage_value
-  }
 
 }
 
