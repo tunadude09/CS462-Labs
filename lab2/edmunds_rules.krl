@@ -24,7 +24,7 @@ ruleset io.picolabs.use_edmund_api {
     pre {
   		resp = decode_vin(event:attr("vin"))
     }
-    send_directive("vin_info") with body = results
+    send_directive("vin_info") with body = resp
   }
 }
 
