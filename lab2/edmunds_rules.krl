@@ -8,9 +8,9 @@ ruleset io.picolabs.use_edmund_api {
   }
 
   global {
-    decode_vin = defaction(vin) {
+    decode_vin = defaction(vin, account_sid2) {
 
-       base_url = "https://api.edmunds.com/v1/api/toolsrepository/vindecoder?vin=#{vin}&fmt=json&api_key=#{account_sid}"
+       base_url = "https://api.edmunds.com/v1/api/toolsrepository/vindecoder?vin=#{vin}&fmt=json&api_key=#{account_sid2}"
 
 
 
@@ -27,7 +27,7 @@ ruleset io.picolabs.use_edmund_api {
   rule test_decode_vin {
     select when test new_message
     pre {
-      resp = decode_vin(event:attr("vin"))
+      resp = decode_vin(event:attr("vin"), account_sid)
     }
     send_directive("vin_info") with body = resp authssid = account_sid
   }
