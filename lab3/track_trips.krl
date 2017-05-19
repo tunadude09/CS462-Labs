@@ -30,9 +30,13 @@ ruleset track_trips {
       mileage_value = event:attr("mileage")
     }
 
-    if mileage_value > long_trips then
-      send_directive("bob") with bob_length = mileage_value
-
+    if mileage_value <= long_trips then
+       noop()
+    fired {
+    } else {
+      raise explicit event "found_long_trip"
+         attributes event:attrs()
+    }
   }
 
 
