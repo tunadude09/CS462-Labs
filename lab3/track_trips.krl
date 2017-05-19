@@ -16,11 +16,6 @@ ruleset track_trips {
       mileage_value = event:attr("mileage")
     }
     send_directive("trip") with trip_length = mileage_value
-
-    fired{
-      raise explicit event "trip_processed"
-         attributes event:attrs()
-    }
   }
 
 
