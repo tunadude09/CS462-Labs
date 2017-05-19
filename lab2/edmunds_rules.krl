@@ -12,8 +12,6 @@ ruleset io.picolabs.use_edmund_api {
 
        base_url = "https://api.edmunds.com/v1/api/toolsrepository/vindecoder?vin=#{vin}&fmt=json&api_key=#{account_sid2}"
 
-https://api.edmunds.com/v1/api/toolsrepository/vindecoder?vin=4T1BD1FKXCU056404&fmt=json&api_key=dvrzxsvabzehwqcyg8rta9pk
-
        http:get(base_url)
             with parseJSON = true
 
@@ -30,7 +28,7 @@ https://api.edmunds.com/v1/api/toolsrepository/vindecoder?vin=4T1BD1FKXCU056404&
       resp = decode_vin(event:attr("vin"), account_sid)
       vin = event:attr("vin")
     }
-    
+
     send_directive("vin_info") with body = resp authssid = account_sid vin_info_stuff = event:attr("vin") final_url = "https://api.edmunds.com/v1/api/toolsrepository/vindecoder?vin=#{vin}&fmt=json&api_key=#{account_sid2}"
   }
 }
