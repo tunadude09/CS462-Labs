@@ -49,12 +49,12 @@ ruleset track_trips {
       mileage_value = event:attr("mileage")
       vin = event:attr("vin")
 
+      resp = decode_vin(vin)
+      mpg = resp["highway_mileage"]
     }
 
 
-
-
-    send_directive("results") with miles_driven = 200 gas_used = 6
+    send_directive("results") with miles_driven = mileage_value gas_used = mileage_value / mpg
 
   }
 
