@@ -12,7 +12,7 @@ ruleset io.picolabs.use_edmund_api {
   global {
     decode_vin = defaction(vin, account_sid_2) {
 
-       base_url = https://api.edmunds.com/api/vehicle/v2/vins/" + vin + "?fmt=json&api_key=" + account_sid_2
+       base_url = "https://api.edmunds.com/api/vehicle/v2/vins/" + vin + "?fmt=json&api_key=" + account_sid_2
 
        http:get(base_url)
             with parseJSON = true
