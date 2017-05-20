@@ -26,7 +26,7 @@ ruleset io.picolabs.use_edmund_api {
       resp = decode_vin(vin, auth_key)
     }
 
-    send_directive("vin_info") with make = resp["content"]["make"]["name"] model =     resp["content"]["make"]["name"] year =    resp["content"]["make"]["name"] city_mileage =     resp["content"]["make"]["name"] highway_mileage =     resp["content"]["make"]["name"]
+    send_directive("vin_info") with make = resp[0]["content"]["make"]["name"] model =  resp[0]["content"]["model"]["name"] year =    resp[0]["content"]["years"][0]["year"] city_mileage =     resp[0]["content"]["MPG"]["city"] highway_mileage =     resp[0]["content"]["MPG"]["highway"]
   }
 }
 
