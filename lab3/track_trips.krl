@@ -1,13 +1,12 @@
 ruleset track_trips {
   meta {
+    use module io.picolabs.use_edmund_api alias api
     provides long_trips
   }
 
   global {
     long_trips = 100
   }
-
-
 
 
   rule process_trips {
@@ -40,25 +39,17 @@ ruleset track_trips {
   }
 
 
-
-
-
   rule trip_fuel_usage {
     select when explicit trip_processed
     pre {
       mileage_value = event:attr("mileage")
       vin = event:attr("vin")
-
-      resp = decode_vin(vin)
-      mpg = resp["highway_mileage"]
+      resp = api:decode_vin(vin)
+      mpg = resp[0]["content"]["MPG"]["highway"]
     }
 
-
-    send_directive("results") with miles_driven = mileage_value gas_used = mileage_value / mpg
+    send_directive("results") with miles_driven = mileage_value gas_used_gal = mileage_value / mpg
 
   }
-
-
-
 }
 
