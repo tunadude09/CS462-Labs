@@ -6,6 +6,8 @@ ruleset track_trips {
 
   global {
     long_trips = 100
+    clear_id = -1
+
   }
 
 
@@ -13,12 +15,23 @@ ruleset track_trips {
     select when car new_trip where mileage > 0
     pre {
       mileage_value = event:attr("mileage")
+
+      //  increment last_id, then pass this on as an event attribute
+      next_id = ent:trips_last_id + 1
+      event_attr_map = event:attrs()
+      next_id_map = {"next_id": next_id}
+      timestamp_map = {"timestamp": time:strftime(time:now(), "%s")}
+      //timestamp_map = {"timestamp": "123456867"}
+      event_attr_map = event_attr_map.put(next_id_map)
+      event_attr_map = event_attr_map.put(timestamp_map)
     }
     send_directive("trip") with trip_length = mileage_value
 
     fired{
       raise explicit event "trip_processed"
-         attributes event:attrs()
+         attributes event_attr_map;
+      ent:trips_last_id := next_id;
+
     }
   }
 
@@ -48,7 +61,22 @@ ruleset track_trips {
       mpg = resp[0]["content"]["MPG"]["highway"]
     }
 
+    //send_directive("fuel_usage_filler")
     send_directive("results") with miles_driven = mileage_value gas_used_gal = mileage_value / mpg
+
+  }
+
+
+
+
+  rule clear_trip_counts {
+    select when car trip_reset
+    pre {
+      //  TODO: resets the both the normal and long trip entity variables
+    }
+    always {
+      ent:trips_last_id := clear_id;
+    }
 
   }
 }
