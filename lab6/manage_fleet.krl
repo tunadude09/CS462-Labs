@@ -123,3 +123,4 @@ ruleset manage_fleet {
   }
 
 }
+rm -r ~/.pico-engine
