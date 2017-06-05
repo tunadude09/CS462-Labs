@@ -52,7 +52,7 @@ ruleset manage_fleet {
         with vehicle_id = vehicle_id
     fired {
     } else {
-      ent:vehicles := ent:vehicles.defaultsTo([]).union([vehicle_id]);
+      //ent:vehicles := ent:vehicles.defaultsTo([]).union([vehicle_id]);
       raise pico event "new_child_request"
         attributes { "dname": nameFromID(vehicle_id), "color": "#FF69B4", "vehicle_id": vehicle_id };
     }
@@ -70,32 +70,37 @@ ruleset manage_fleet {
       vehicle_id = event:attr("rs_attrs"){"vehicle_id"}
       vehicle_values = vehicles()
 
+      //vehicle_map = {vehicle_id : the_vehicle}
+
     }
     if vehicle_id.klog("found vehicle_id")
     then
       noop()
     fired {
+
+      //  TODO:  save thee eci ids etc properly here
       ent:vehicles := ent:vehicles.defaultsTo({});
-      ent:vehicles{[vehicle_id]} := the_vehicle;
+      ent:vehicles := ent:vehicles.put([vehicle_id], the_vehicle);
+      //ent:vehicles{[vehicle_id]} := the_vehicle;
 
 
 
 
 
-      //event:send(
-      //  { "eci": eci, "eid": "install-ruleset",
-      //  "domain": "pico", "type": "new_ruleset",
-      //  "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
-      //event:send(
-      //  { "eci": eci, "eid": "install-ruleset",
-      //  "domain": "pico", "type": "new_ruleset",
-      //  "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
-      //event:send(
-      //  { "eci": eci, "eid": "install-ruleset",
-      //  "domain": "pico", "type": "new_ruleset",
-      //  "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id } } );
+      event:send(
+        { "eci": eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
+      event:send(
+        { "eci": eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
+      event:send(
+        { "eci": eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id } } );
 
-    //send_directive("vehicles_info2") with vehicles = vehicle_values;
+    send_directive("vehicles_info2") with vehicles = the_vehicle;
 
   
     }
@@ -123,4 +128,3 @@ ruleset manage_fleet {
   }
 
 }
-rm -r ~/.pico-engine
