@@ -9,8 +9,6 @@ ruleset trip_store {
     clear_trips = {}
     //clear_id = -1
 
-    //  TODO:  then add 3 functions to retrieve entity variables
-
     trips = function() {
          ent:trips
     };

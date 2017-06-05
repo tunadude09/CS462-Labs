@@ -7,14 +7,14 @@ ruleset vehicle_profile {
   }
 
   global {
-    clear_vin = -1
-    clear_threshold = -1
+    clear_vin = null
+    clear_threshold = null
 
     get_vin = function() {
-      ent:vin
+      ent:vin.defaultsto("1N4AL3AP1FC130990")
     };
     get_long_trip_threshold = function() {
-      ent:threshold
+      ent:threshold.defaultsto(100)
     };
   }
 
@@ -40,10 +40,9 @@ ruleset vehicle_profile {
       long_trip_threshold = event:attr("long_trip_threshold")
         
     }
-    if vin.length() == 0 then noop()
 
-    fired {
-      ent:vin := vin
+    always {
+      ent:vin := vin;
       ent:threshold := long_trip_threshold
     }
   }
@@ -68,4 +67,5 @@ ruleset vehicle_profile {
     }
   }
 }
+
 

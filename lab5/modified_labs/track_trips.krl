@@ -1,6 +1,7 @@
 ruleset track_trips {
   meta {
     use module io.picolabs.use_edmund_api alias api
+    use module vehicle_profile alias profile
     provides long_trips
   }
 
@@ -14,6 +15,11 @@ ruleset track_trips {
   rule process_trips {
     select when car new_trip where mileage > 0
     pre {
+      //  pull in updated long_trips threshold
+      long_trips = profile:get_long_trip_threshold()
+
+
+
       mileage_value = event:attr("mileage")
 
       //  increment last_id, then pass this on as an event attribute
@@ -21,9 +27,14 @@ ruleset track_trips {
       event_attr_map = event:attrs()
       next_id_map = {"next_id": next_id}
       timestamp_map = {"timestamp": time:strftime(time:now(), "%s")}
-      //timestamp_map = {"timestamp": "123456867"}
+
+      //  I'm replacing any existing vins with the one from memory
+      current_vin = profile:get_vin()
+      vin_map = {"vin": current_vin}
+
       event_attr_map = event_attr_map.put(next_id_map)
       event_attr_map = event_attr_map.put(timestamp_map)
+      event_attr_map = event_attr_map.put(vin_map)
     }
     send_directive("trip") with trip_length = mileage_value
 
