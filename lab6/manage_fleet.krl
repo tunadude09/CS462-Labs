@@ -3,21 +3,18 @@ ruleset manage_fleet {
     use module track_trips
     use module trip_store
     use module vehicle_profile
-    provides vehicles, __testing
-    shares vehicles, __testing
+    provides vehicles, __testing, long_trip_threshold
+    shares vehicles, __testing, long_trip_threshold
   }
   global {
-    clear_vehicles = []
+    clear_vehicles = {}
+
+    long_trip_threshold = 100
 
     vehicles = function() {
       ent:vehicles
     }
 
-    //send_rules_to_pico = defaction(eci) {
-
-      //every{
-        //}
-    //}
 
     nameFromID = function(vehicle_id) {
       "Vehicle " + vehicle_id + " Pico"
@@ -58,7 +55,8 @@ ruleset manage_fleet {
         with vehicle_id = vehicle_id
     fired {
     } else {
-      //ent:vehicles := ent:vehicles.defaultsTo([]).union([vehicle_id]);
+      //  TODO:  could potentially create race condition if not included
+      //ent:vehicles := ent:vehicles.defaultsTo({}).union(vehicle_id);
       raise pico event "new_child_request"
         attributes { "dname": nameFromID(vehicle_id), "color": "#FF69B4", "vehicle_id": vehicle_id };
     }
@@ -79,16 +77,23 @@ ruleset manage_fleet {
 
     }
     if vehicle_id.klog("found vehicle_id")
-    then
+    then {
       event:send(
         { "eci": the_vehicle.eci, "eid": "install-ruleset",
         "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } )
-    
+        "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
+      event:send(
+        { "eci": the_vehicle.eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id } } );
+      event:send(
+        { "eci": the_vehicle.eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
 
       
 
-    fired {
+    } fired {
 
       //  TODO:  save thee eci ids etc properly here
       ent:vehicles := ent:vehicles.defaultsTo({});
@@ -96,9 +101,25 @@ ruleset manage_fleet {
       //ent:vehicles{[vehicle_id]} := the_vehicle;
 
 
-    //send_directive("vehicles_info2") with vehicles = the_vehicle;
+      raise pico event "ready_for_profile_initialization" 
+        attributes event:attrs()
 
   
+    }
+  }
+
+  rule initialize_child_pico {
+    //  TODO:  need to avoid race conditions and only run this after rules are installed
+    select when pico ready_for_profile_initialization
+    pre {
+      vin  =  event:attr("vin")
+    }
+    
+    fired {
+      //  TODO:  I need to fire this on the new child pico
+      raise car event "profile_updated"
+        attributes { "vin": vin, "threshold" : long_trip_threshold};
+    
     }
   }
 
