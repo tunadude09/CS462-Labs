@@ -13,6 +13,12 @@ ruleset manage_fleet {
       ent:vehicles
     }
 
+    //send_rules_to_pico = defaction(eci) {
+
+      //every{
+        //}
+    //}
+
     nameFromID = function(vehicle_id) {
       "Vehicle " + vehicle_id + " Pico"
     }
@@ -66,7 +72,6 @@ ruleset manage_fleet {
     select when pico child_initialized
     pre {
       the_vehicle = event:attr("new_child")
-      //info_returned = event:attr("rs_attrs")
       vehicle_id = event:attr("rs_attrs"){"vehicle_id"}
       vehicle_values = vehicles()
 
@@ -75,7 +80,14 @@ ruleset manage_fleet {
     }
     if vehicle_id.klog("found vehicle_id")
     then
-      noop()
+      event:send(
+        { "eci": the_vehicle.eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } )
+    
+
+      
+
     fired {
 
       //  TODO:  save thee eci ids etc properly here
@@ -84,23 +96,7 @@ ruleset manage_fleet {
       //ent:vehicles{[vehicle_id]} := the_vehicle;
 
 
-
-
-
-      event:send(
-        { "eci": eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
-      event:send(
-        { "eci": eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
-      event:send(
-        { "eci": eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id } } );
-
-    send_directive("vehicles_info2") with vehicles = the_vehicle;
+    //send_directive("vehicles_info2") with vehicles = the_vehicle;
 
   
     }
