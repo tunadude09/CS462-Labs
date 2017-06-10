@@ -53,7 +53,7 @@ ruleset trip_store {
     send_directive("trips_so_far") with trips_var = ent:trips.defaultsTo(clear_trips) long_trips_var = ent:long_trips.defaultsTo(clear_trips)
 
     always{
-      ent:trips := ent:trips.defaultsTo(clear_trips)
+      ent:trips := ent:trips.defaultsTo(clear_trips);
       ent:trips{[next_id,"timestamp"]} := timestamp;
       ent:trips{[next_id,"mileage"]} := mileage;
       ent:trips{[next_id,"vin"]} := vin;
@@ -79,7 +79,7 @@ ruleset trip_store {
     //send_directive("long_trips_so_far") with trips_var = ent:trips.defaultsTo(clear_trips) long_trips_var = ent:long_trips.defaultsTo(clear_trips)
 
     always{
-      ent:long_trips := ent:long_trips.defaultsTo(clear_trips)
+      ent:long_trips := ent:long_trips.defaultsTo(clear_trips);
       ent:long_trips{[next_id,"timestamp"]} := timestamp;
       ent:long_trips{[next_id,"mileage"]} := mileage;
       ent:long_trips{[next_id,"vin"]} := vin;
