@@ -1,6 +1,6 @@
 ruleset vehicle_profile {
   meta {
-    use module track_trips alias track_trips
+    //use module track_trips alias track_trips
     provides get_vin, get_long_trip_threshold
     shares get_vin, get_long_trip_threshold
 
