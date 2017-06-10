@@ -23,7 +23,7 @@ ruleset track_trips {
       mileage_value = event:attr("mileage")
 
       //  increment last_id, then pass this on as an event attribute
-      next_id = ent:trips_last_id + 1
+      next_id = ent:trips_last_id.defaultsTo(clear_id) + 1
       event_attr_map = event:attrs()
       next_id_map = {"next_id": next_id}
       timestamp_map = {"timestamp": time:strftime(time:now(), "%s")}

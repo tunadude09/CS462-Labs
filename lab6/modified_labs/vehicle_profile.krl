@@ -7,14 +7,14 @@ ruleset vehicle_profile {
   }
 
   global {
-    clear_vin = null
-    clear_threshold = null
+    clear_vin = "1N4AL3AP1FC130990"
+    clear_threshold = 100
 
     get_vin = function() {
-      ent:vin.defaultsto("1N4AL3AP1FC130990")
+      ent:vin.defaultsTo(clear_vin)
     };
     get_long_trip_threshold = function() {
-      ent:threshold.defaultsto(100)
+      ent:threshold.defaultsTo(clear_threshold)
     };
   }
 

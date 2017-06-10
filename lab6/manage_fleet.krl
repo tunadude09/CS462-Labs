@@ -12,7 +12,7 @@ ruleset manage_fleet {
     long_trip_threshold = 100
 
     vehicles = function() {
-      ent:vehicles
+      ent:vehicles.defaultsTo(clear_vehicles)
     }
 
 
@@ -45,7 +45,7 @@ ruleset manage_fleet {
 
     pre {
       vehicle_id = event:attr("vehicle_id")
-      exists = ent:vehicles >< vehicle_id
+      exists = ent:vehicles.defaultsTo(clear_vehicles) >< vehicle_id
       eci = meta:eci
       //vehicle_values = vehicles()
     }
@@ -56,7 +56,7 @@ ruleset manage_fleet {
     fired {
     } else {
       //  TODO:  could potentially create race condition if not included
-      //ent:vehicles := ent:vehicles.defaultsTo({}).union(vehicle_id);
+      //ent:vehicles := ent:vehicles.defaultsTo(clear_vehicles).union(vehicle_id);
       raise pico event "new_child_request"
         attributes { "dname": nameFromID(vehicle_id), "color": "#FF69B4", "vehicle_id": vehicle_id };
     }
@@ -96,7 +96,7 @@ ruleset manage_fleet {
     } fired {
 
       //  TODO:  save thee eci ids etc properly here
-      ent:vehicles := ent:vehicles.defaultsTo({});
+      ent:vehicles := ent:vehicles.defaultsTo(clear_vehicles);
       ent:vehicles := ent:vehicles.put([vehicle_id], the_vehicle);
       //ent:vehicles{[vehicle_id]} := the_vehicle;
   
