@@ -99,33 +99,46 @@ ruleset manage_fleet {
       ent:vehicles := ent:vehicles.defaultsTo({});
       ent:vehicles := ent:vehicles.put([vehicle_id], the_vehicle);
       //ent:vehicles{[vehicle_id]} := the_vehicle;
-
-
-      raise pico event "ready_for_profile_initialization" 
-        attributes event:attrs()
-
   
     }
   }
 
-  rule initialize_child_pico {
+
+
+
+
+  rule pico_ruleset_added {
     //  TODO:  need to avoid race conditions and only run this after rules are installed
-    select when pico ready_for_profile_initialization
+    select when pico ruleset_added where rid == "trip_store"
     pre {
       vin  =  event:attr("vin")
+      the_vehicle = event:attr("new_child")
     }
     
     fired {
       //  TODO:  I need to fire this on the new child pico
-      raise car event "profile_updated"
-        attributes { "vin": vin, "threshold" : long_trip_threshold};
+      event:send(
+        { "eci": the_vehicle.eci , "eid": "update-profile",
+        "domain": "car", "type": "profile_updated",
+        "attrs": { "vin": vin, "threshold" : long_trip_threshold } } );
+
+      //  raise car event "profile_updated"
+      //    attributes { "vin": vin, "threshold" : long_trip_threshold};
     
     }
   }
 
 
 
-
+ // rule pico_ruleset_added {
+ //   select when pico ruleset_added where rid == meta:rid
+ //   pre {
+ //     section_id = event:attr("section_id")
+ //   }
+ //   always {
+ //     ent:section_id := section_id
+ //   } 
+ // }
 
 
 
