@@ -34,7 +34,13 @@ ruleset trip_store {
   }
 
 
-
+  rule test_return_trips{
+    select when car return_trips
+    pre{
+       trips_var = trips()
+    }
+    send_directive("all_trips") with trips = trips_var 
+  }
 
 
 

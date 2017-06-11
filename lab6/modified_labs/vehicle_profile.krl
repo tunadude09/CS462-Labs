@@ -1,34 +1,30 @@
-ruleset manage_fleet {
+ruleset vehicle_profile {
   meta {
-    use module track_trips
-    use module trip_store
-    use module vehicle_profile
-    provides vehicles, __testing, long_trip_threshold
-    shares vehicles, __testing, long_trip_threshold
+    //use module track_trips alias track_trips
+    provides get_vin, get_long_trip_threshold
+    shares get_vin, get_long_trip_threshold
+
   }
+
   global {
-    clear_vehicles = {}
+    clear_vin = "1N4AL3AP1FC130990"
+    clear_threshold = 100
 
-    long_trip_threshold = 100
-
-    vehicles = function() {
-      ent:vehicles.defaultsTo(clear_vehicles)
-    }
-
-
-    nameFromID = function(vehicle_id) {
-      "Vehicle " + vehicle_id + " Pico"
-    }
-    __testing = { "events":  [ { "domain": "vehicle", "type": "needed", "attrs": [ "vehicle_id" ] } ] }
+    get_vin = function() {
+      ent:vin.defaultsTo(clear_vin)
+    };
+    get_long_trip_threshold = function() {
+      ent:threshold.defaultsTo(clear_threshold)
+    };
   }
 
-
-  rule get_vehicles {
-    select when car get_vehicles
+  rule get_vehicle_profile {
+    select when car profile
     pre {
-      vehicles_value = vehicles()
+      vin = get_vin()
+      long_trip_threshold = get_long_trip_threshold()
     }
-    send_directive("vehicles_info") with vehicles = vehicles_value
+    send_directive("car_profile") with vin = vin long_trip_threshold = long_trip_threshold
   }
 
 
@@ -36,125 +32,66 @@ ruleset manage_fleet {
 
 
 
-  rule create_new_vehicle {
-    select when car new_vehicle
 
-    //creating a new pico to represent the vehicle
-    //installing the trip_store, track_trips, and vehicle_profile rulesets in the new vehicle
-    //storing the new vehicle pico's ECI and an event attribute with the vehicle's name in an entity variable called vehicles that maps its name to the ECI
-
+  rule update_vehicle_profile {
+    select when car profile_updated
     pre {
-      vehicle_id = event:attr("vehicle_id")
-      exists = ent:vehicles.defaultsTo(clear_vehicles) >< vehicle_id
-      eci = meta:eci
-      //vehicle_values = vehicles()
+      vin = event:attr("vin")
+      long_trip_threshold = event:attr("long_trip_threshold")
+        
     }
 
-    if exists then
-      send_directive("vehicle_ready")
-        with vehicle_id = vehicle_id
-    fired {
-    } else {
-      //  TODO:  could potentially create race condition if not included
-      //ent:vehicles := ent:vehicles.defaultsTo(clear_vehicles).union(vehicle_id);
-      raise pico event "new_child_request"
-        attributes { "dname": nameFromID(vehicle_id), "color": "#FF69B4", "vehicle_id": vehicle_id };
-    }
-  }
-
-
-
-
-
-  rule pico_child_initialized {
-    select when pico child_initialized
-    pre {
-      the_vehicle = event:attr("new_child")
-      vehicle_id = event:attr("rs_attrs"){"vehicle_id"}
-      vehicle_values = vehicles()
-
-      //vehicle_map = {vehicle_id : the_vehicle}
-
-    }
-    if vehicle_id.klog("found vehicle_id")
-    then {
-      event:send(
-        { "eci": the_vehicle.eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id } } );
-      //event:send(
-      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
-      //  "domain": "pico", "type": "new_ruleset",
-      //  "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id } } );
-      //event:send(
-      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
-      //  "domain": "pico", "type": "new_ruleset",
-      //  "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
-
-      
-
-    } fired {
-
-      //  TODO:  save thee eci ids etc properly here
-      ent:vehicles := ent:vehicles.defaultsTo(clear_vehicles);
-      ent:vehicles := ent:vehicles.put([vehicle_id], the_vehicle);
-      //ent:vehicles{[vehicle_id]} := the_vehicle;
-  
-    }
-  }
-
-
-
-
-
-  //rule all_rulesets_added {
-  //  //  TODO:  need to avoid race conditions and only run this after rules are installed
-  //  select when pico ruleset_added where rid == "trip_store"
-  //  pre {
-  //    vin  =  event:attr("vin")
-  //    the_vehicle = event:attr("new_child")
-  //  }
-    
-  //  fired {
-  //    //  TODO:  I need to fire this on the new child pico
-  //    event:send(
-  //      { "eci": the_vehicle.eci , "eid": "update-profile",
-  //      "domain": "car", "type": "profile_updated",
-  //      "attrs": { "vin": vin, "threshold" : long_trip_threshold } } );
-
-  //    //  raise car event "profile_updated"
-  //    //    attributes { "vin": vin, "threshold" : long_trip_threshold};
-  //  
-  //  }
-  //}
-
-
-
- // rule pico_ruleset_added {
- //   select when pico ruleset_added where rid == meta:rid
- //   pre {
- //     section_id = event:attr("section_id")
- //   }
- //   always {
- //     ent:section_id := section_id
- //   } 
- // }
-
-
-
-
-
-
-
-
-  rule clear_vehicles {
-    select when car vehicles_reset
-    pre {
-    }
-    send_directive("fleet_reset_confirmed")
     always {
-      ent:vehicles := clear_vehicles;
+      ent:vin := vin;
+      ent:threshold := long_trip_threshold
+    }
+  }
+ 
+
+
+
+
+  rule all_rulesets_added {
+    //  TODO:  need to avoid race conditions and only run this after rules are installed
+    select when pico ruleset_added where rid == "vehicle_profile"
+    pre {
+      vin  =  event:attr("vin")
+      long = event:attr("long_threshold")
+    }
+    
+    fired {
+      //  TODO:  I need to fire this on the new child pico
+      //event:send(
+      //  { "eci": the_vehicle.eci , "eid": "update-profile",
+      //  "domain": "car", "type": "profile_updated",
+      //  "attrs": { "vin": vin, "threshold" : long_trip_threshold } } );
+
+      raise car event "profile_updated"
+        attributes { "vin": vin, "long_trip_threshold" : long};
+    
     }
   }
 
+
+
+
+
+
+
+
+
+
+  rule clear_profile {
+    select when car trip_reset
+    pre {
+      //  TODO: resets the all profile variables
+    }
+    send_directive("profile_reset_confired") 
+    always {
+      ent:vin := clear_vin;
+      ent:threshold := clear_threshold;
+    }
+  }
 }
+
+
