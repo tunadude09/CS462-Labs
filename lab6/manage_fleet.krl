@@ -247,6 +247,7 @@ ruleset manage_fleet {
     send_directive("fleet_reset_confirmed")
     always {
       ent:vehicles := clear_vehicles;
+      ent:vehicle_vins := clear_vehicles;
     }
   }
 
