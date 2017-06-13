@@ -1,6 +1,7 @@
 ruleset trip_store {
   meta {
     use module track_trips alias track_trips
+    use module vehicle_profile
     provides trips, long_trips, short_trips
     shares trips, long_trips, short_trips
   }
@@ -51,6 +52,7 @@ ruleset trip_store {
       vin = event:attr("vin")
       mileage = event:attr("mileage")
       timestamp = event:attr("timestamp")
+      vehicle_id = vehicle_profile:get_vehicle_id()
       //max_id = ent:trips_last_id
       //next_id = max_id + 1
       next_id = event:attr("next_id")
@@ -61,9 +63,9 @@ ruleset trip_store {
     always{
       ent:trips := ent:trips.defaultsTo(clear_trips);
       ent:trips{[next_id,"timestamp"]} := timestamp;
-      ent:trips{[next_id,"mileage"]} := mileage;
+      ent:trips{[next_id,"mileage"]} := mileage.as("Number");
       ent:trips{[next_id,"vin"]} := vin;
-
+      ent:trips{[next_id,"vehicle_id"]} := vehicle_id;
       //ent:trips_last_id := next_id;
     }
   }
@@ -78,6 +80,8 @@ ruleset trip_store {
       vin = event:attr("vin")
       mileage = event:attr("mileage")
       timestamp = event:attr("timestamp")
+      vehicle_id = vehicle_profile:get_vehicle_id()
+
       //max_id = ent:long_trips_last_id
       //next_id = max_id + 1
       next_id = event:attr("next_id")
@@ -87,8 +91,10 @@ ruleset trip_store {
     always{
       ent:long_trips := ent:long_trips.defaultsTo(clear_trips);
       ent:long_trips{[next_id,"timestamp"]} := timestamp;
-      ent:long_trips{[next_id,"mileage"]} := mileage;
+      ent:long_trips{[next_id,"mileage"]} := mileage.as("Number");
       ent:long_trips{[next_id,"vin"]} := vin;
+      ent:long_trips{[next_id,"vehicle_id"]} := vehicle_id;
+
       //ent:long_trips_last_id := next_id;
     }
   }

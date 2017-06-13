@@ -3,13 +3,15 @@ ruleset manage_fleet {
     use module track_trips
     use module trip_store
     use module vehicle_profile
-    provides vehicles, __testing, long_trip_threshold
-    shares vehicles, __testing, long_trip_threshold
+    provides vehicles, __testing, long_trip_threshold, collect_all_fleet_trips, nameFromID
+    shares vehicles, __testing, long_trip_threshold, collect_all_fleet_trips, nameFromID
   }
   global {
     clear_vehicles = {}
 
     long_trip_threshold = 80
+
+    canichangethis = []
 
     vehicles = function() {
       ent:vehicles.defaultsTo(clear_vehicles)
@@ -89,28 +91,23 @@ ruleset manage_fleet {
     }
 
 
-
+//[[{"timestamp":"1497332946","mileage":"3333","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"},{"timestamp":"1497332950","mileage":"77","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"}], [{"timestamp":"1497332946","mileage":"1111","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"},{"timestamp":"1497332950","mileage":"11","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"}]]
 
 
    collect_all_fleet_trips = function() {
-     //  TODO:  now I need to #1 run through all call this method on every vehicle in vehicles()
      vehicles_meta = ent:vehicles.values();
      vehicles_meta_ecis = vehicles_meta.map(function(x) {x["eci"]});
      vehicles_meta_trips = vehicles_meta_ecis.map(function(x) {skyQuery(x, "trip_store", "trips")});
-     //  TODO:  then #2 I need to aggregate these all together and return
-     // {"0":{"timestamp":"1497155028","mileage":"170","vin":"88888"},"1":{"timestamp":"1497155034","mileage":"5684","vin":"88888"}},{}]}
-     //  how to combine an array of these into a single json file?
-     //  this might be ok for now FIXME as needed in future labs
-     vehicles_meta_trips.map(function(x) {x.values()});
-
+     vehicles_meta_trips = vehicles_meta_trips.map(function(x) {x.values()});
+     //test_arr = [[{"timestamp":"1497332946","mileage":"3333","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"},{"timestamp":"1497332950","mileage":"77","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"}], [{"timestamp":"1497332946","mileage":"1111","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"},{"timestamp":"1497332950","mileage":"11","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"}]];
+     flatten(vehicles_meta_trips, 0)
    }
 
+   flatten = function (arr, i) {
+     i == arr.length() => []  |   arr[i].append(flatten(arr, i + 1))
+   }
 
-
-
-
-
-
+  
 
     __testing = { "events":  [ { "domain": "vehicle", "type": "needed", "attrs": [ "vehicle_id" ] } ] }
   }
