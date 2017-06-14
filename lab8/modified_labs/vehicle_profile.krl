@@ -63,14 +63,15 @@ ruleset vehicle_profile {
       vin  =  event:attr("vin")
       long = event:attr("long_threshold")
       vehicle_id = event:attr("vehicle_id")
+      parent_eci = event:attr("parent_eci")
+
     }
-    
+      event:send(
+        { "eci": parent_eci , "eid": "asking_for_subscription",
+        "domain": "pico", "type": "child_ready_for_subscription",
+        "attrs": { "child_eci": meta:eci, "vehicle_id" : vehicle_id } } )
     fired {
       //  TODO:  I need to fire this on the new child pico
-      //event:send(
-      //  { "eci": the_vehicle.eci , "eid": "update-profile",
-      //  "domain": "car", "type": "profile_updated",
-      //  "attrs": { "vin": vin, "threshold" : long_trip_threshold } } );
       
       //  set the vehicle_id, this will never be changed until the vehicle is deleted
       ent:vehicle_id := vehicle_id;
@@ -83,6 +84,22 @@ ruleset vehicle_profile {
 
 
 
+
+
+
+
+  rule auto_approve_subscriptions {
+    select when wrangler inbound_pending_subscription_added
+    pre{
+      attributes = event:attrs().klog("subcription :");
+    }
+    noop()
+    always{
+      raise wrangler event "pending_subscription_approval"
+          attributes attributes;       
+          log("auto accepted subcription.");
+    }
+  }
 
 
 

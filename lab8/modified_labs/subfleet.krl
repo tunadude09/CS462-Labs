@@ -91,6 +91,9 @@ ruleset subfleet {
       description = event:attr("description")
     }
     always {
+      raise pico event "new_child_request"
+        attributes { "dname": name, "color": "#FF69B4" };
+    
       ent:subfleet_profiles := ent:subfleet_profiles.defaultsTo({}).put([name], description)
     }
   }

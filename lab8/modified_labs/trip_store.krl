@@ -100,6 +100,41 @@ ruleset trip_store {
   }
 
 
+
+
+
+
+
+
+
+
+
+  rule generate_report {
+    select when fleet report_requested
+    pre {
+      all_trips_for_vehicle = trips()
+      parent_eci = event:attr("parent_eci")
+      corr_id = event:attr("corr_id")
+
+    }
+    
+    event:send(
+      { "eci": parent_eci, "eid": "sending_report",
+        "domain": "fleet", "type": "report_ready" ,
+        "attrs": { "corr_id": corr_id, "report" : all_trips_for_vehicle}
+     }
+   )
+
+  }
+
+
+
+
+
+
+
+
+
   rule clear_trips {
     select when car trip_reset
     pre {

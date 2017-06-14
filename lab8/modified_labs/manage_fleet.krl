@@ -3,6 +3,8 @@ ruleset manage_fleet {
     use module track_trips
     use module trip_store
     use module vehicle_profile
+    use module Subscriptions
+
     provides vehicles, __testing, long_trip_threshold, collect_all_fleet_trips, nameFromID
     shares vehicles, __testing, long_trip_threshold, collect_all_fleet_trips, nameFromID
   }
@@ -28,10 +30,6 @@ ruleset manage_fleet {
     childFromID = function(vehicle_id) {
       ent:vehicles[vehicle_id]
     }
-
-
-
-
 
 
 /*
@@ -89,9 +87,6 @@ ruleset manage_fleet {
       // if HTTP status was OK & the response was not null and there were no errors...
       (status == 200 && not is_bad_response ) => response_content | error
     }
-
-
-//[[{"timestamp":"1497332946","mileage":"3333","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"},{"timestamp":"1497332950","mileage":"77","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"}], [{"timestamp":"1497332946","mileage":"1111","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"},{"timestamp":"1497332950","mileage":"11","vin":"1N4AL3AP1FC130990","vehicle_id":"4444"}]]
 
 
    collect_all_fleet_trips = function() {
@@ -189,7 +184,11 @@ ruleset manage_fleet {
       event:send(
         { "eci": the_vehicle.eci, "eid": "install-ruleset",
         "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id, "vin" : vin, "long_threshold" : long_trip_threshold } } );
+        "attrs": { "rid": "Subscriptions", "vehicle_id": vehicle_id } } );
+      event:send(
+        { "eci": the_vehicle.eci, "eid": "install-ruleset",
+        "domain": "pico", "type": "new_ruleset",
+        "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id, "vin" : vin, "long_threshold" : long_trip_threshold, "parent_eci" : meta:eci } } );
       event:send(
         { "eci": the_vehicle.eci, "eid": "install-ruleset",
         "domain": "pico", "type": "new_ruleset",
@@ -213,6 +212,40 @@ ruleset manage_fleet {
 
 
 
+
+  rule subscribe_to_child_vehicle {
+    select when pico child_ready_for_subscription
+    pre {
+      child_eci = event:attr("child_eci")
+      vehicle_id = event:attr("vehicle_id")
+    }
+
+
+      //event:send(
+      //{ "eci": meta:eci, "eid": "subscription",
+      //  "domain": "wrangler", "type": "subscription",
+      //  "attrs": { "name": "fleet_vehicle",
+      //             "name_space": "fleet",
+      //             "my_role": "fleet_controller",
+      //             "subscriber_role": "fleet_member",
+      //             "channel_type": "subscription",
+      //             "subscriber_eci": child_eci } } )
+
+    always {
+      
+      raise wrangler event "subscription"
+        with name = vehicle_id
+          name_space = "fleet"
+          my_role = "fleet_controller"
+          subscriber_role = "fleet_member_vehicle"
+          channel_type = "subscription"
+          subscriber_eci = child_eci      
+    }
+
+  }
+
+
+
   rule car_offline {
     select when car unneeded_vehicle
     pre {
@@ -231,6 +264,120 @@ ruleset manage_fleet {
     }
   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  rule request_reports {
+    select when fleet request_reports
+    foreach Subscriptions:getSubscriptions() setting (subscription)
+    pre {
+      subs_attrs = subscription{"attributes"}
+      corr_id = time:now()
+      corr_id = "cid" + corr_id
+    }
+    if subs_attrs{"subscriber_role"} == "fleet_member_vehicle" then
+      event:send(
+        { "eci": subs_attrs{"outbound_eci"}, "eid": "report_requested",
+          "domain": "fleet", "type": "report_requested" ,
+          "attrs": { "corr_id": corr_id, "parent_eci" : meta:eci}
+       }
+      )  
+  }
+
+
+
+
+
+
+  rule gather_reports {
+    select when fleet report_ready
+    pre {
+      corr_id = event:attr("corr_id")
+      report = event:attr("report")
+      reports_received = ent:reports_count.defaultsTo(0) + 1
+      num_vehicles = ent:vehicles.length()
+    }
+
+    always {
+      ent:reports_count := reports_received;
+      //  TODO:  store report
+
+      ent:fleet_reports := ent:fleet_reports.defaultsTo({});
+      current_report_group = ent:fleet_reports[corr_id]["trips"];
+      current_report_group = current_report_group.append(report);
+      
+
+      //ent:fleet_reports[corr_id]["vehicles"] = num_vehicles;
+      //ent:fleet_reports[corr_id]["responding"] = reports_received;
+      //ent:fleet_reports[corr_id]["trips"] = current_report_group;
+    }
+  }
+
+
+
+
+  rule get_report {
+    select when fleet get_report
+    pre {
+       reports = ent:fleet_reports.defaultsTo({})
+    }
+    send_directive("reports") with reports = reports
+  }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  rule reset_subs {
+    select when car vehicles_reset
+    pre {
+
+    }
+    fired {
+      raise wrangler event "subscription_cancellation"
+        with subscription_name = "fleet:444"
+    }  
+  }
+
+
+
+
+  //rule reset_subscriptions {
+  //  select when car vehicles_reset
+  //  foreach Subscriptions:getSubscriptions() setting (subscription)
+  //  pre {
+  //    subs_attrs = subscription{"attributes"}
+  //  }
+  //  if subs_attrs{"subscriber_role"} == "fleet_member_vehicle" then
+  //    noop()
+  //  fired {
+  //    raise wrangler event "subscription_cancellation"
+  //      with subscription_name = subs_attrs{"name_space"} + ":" + subs_attrs{"subscription_name"}
+  //  }  
+ // }
 
 
 
