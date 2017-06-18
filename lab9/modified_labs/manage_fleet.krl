@@ -132,8 +132,8 @@ ruleset manage_fleet {
     __testing = { "events":  [ { "domain": "vehicle", "type": "needed", "attrs": [ "vehicle_id" ] } ] }
   }
 
-  rule get_array_stuff {
-    select when stuff array_stuff
+  rule get_last_5_reports {
+    select when fleet collect_latest_reports
     pre {
       stuff = get_5_latest_reports()
     }
@@ -402,6 +402,14 @@ ruleset manage_fleet {
 
 
 
+
+
+  rule reset_report {
+    select when fleet reset_report
+    fired {
+      ent:fleet_reports := {}
+    }
+  }
 
 
 
