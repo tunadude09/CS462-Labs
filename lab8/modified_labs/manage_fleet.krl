@@ -102,9 +102,42 @@ ruleset manage_fleet {
      i == arr.length() => []  |   arr[i].append(flatten(arr, i + 1))
    }
 
+
+
+
+  get_5_latest_reports = function() {
+    //  grab back 5 from array
+    report_cids = ent:all_report_cids.defaultsTo([]);
+    report_cids = report_cids.reverse();
+    cid_duplication = ent:reports_count;
+
+    id0 = report_cids[0];
+    id1 = report_cids[1 * cid_duplication];
+    id2 = report_cids[2 * cid_duplication];
+    id3 = report_cids[3 * cid_duplication];
+    id4 = report_cids[4 * cid_duplication];
+
+    collect_reports = {};
+    collect_reports = collect_reports.put(["0"], ent:fleet_reports[id0]);
+    collect_reports = collect_reports.put(["1"], ent:fleet_reports[id1]);
+    collect_reports = collect_reports.put(["2"], ent:fleet_reports[id2]);
+    collect_reports = collect_reports.put(["3"], ent:fleet_reports[id3]);
+    collect_reports = collect_reports.put(["4"], ent:fleet_reports[id4]);
+    collect_reports;
+    //report_cids;
+  }
+
   
 
     __testing = { "events":  [ { "domain": "vehicle", "type": "needed", "attrs": [ "vehicle_id" ] } ] }
+  }
+
+  rule get_last_5_reports {
+    select when fleet collect_latest_reports
+    pre {
+      stuff = get_5_latest_reports()
+    }
+    send_directive("stuff") with stuff = stuff
   }
 
 
@@ -181,22 +214,22 @@ ruleset manage_fleet {
     }
     if vehicle_id.klog("found vehicle_id")
     then {
-      event:send(
-        { "eci": the_vehicle.eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "Subscriptions", "vehicle_id": vehicle_id } } );
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "Subscriptions", "vehicle_id": vehicle_id } } );
       event:send(
         { "eci": the_vehicle.eci, "eid": "install-ruleset",
         "domain": "pico", "type": "new_ruleset",
         "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id, "vin" : vin, "long_threshold" : long_trip_threshold, "parent_eci" : meta:eci } } );
-      event:send(
-        { "eci": the_vehicle.eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
-      event:send(
-        { "eci": the_vehicle.eci, "eid": "install-ruleset",
-        "domain": "pico", "type": "new_ruleset",
-        "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
 
       
 
@@ -272,6 +305,18 @@ ruleset manage_fleet {
 
 
 
+  rule request_reports_prep {
+    select when fleet request_reports
+    pre {
+      //  generate one corr_id for the entire report
+      corr_id = time:now()
+      corr_id = "cid" + corr_id
+    }
+    fired {
+      raise fleet event "request_reports_sub"
+        with corr_id = corr_id;
+    }
+  }
 
 
 
@@ -279,22 +324,33 @@ ruleset manage_fleet {
 
 
   rule request_reports {
-    select when fleet request_reports
+    select when fleet request_reports_sub
     foreach Subscriptions:getSubscriptions() setting (subscription)
     pre {
       subs_attrs = subscription{"attributes"}
-      corr_id = time:now()
-      corr_id = "cid" + corr_id
+      corr_id = event:attr("corr_id")
     }
-    if subs_attrs{"subscriber_role"} == "fleet_member_vehicle" then
+    if subs_attrs{"subscriber_role"} == "fleet_member_vehicle" then    
       event:send(
-        { "eci": subs_attrs{"outbound_eci"}, "eid": "report_requested",
+        { "eci": subs_attrs{"subscriber_eci"}, "eid": "report_requested",
           "domain": "fleet", "type": "report_requested" ,
           "attrs": { "corr_id": corr_id, "parent_eci" : meta:eci}
-       }
-      )  
-  }
+        }
+      )
+      //event:send(
+      //  { "eci": meta:eci, "eid": subs_attrs{"outbound_eci"},
+      //    "domain": "fleet", "type": "report_requested" ,
+      //    "attrs": { "corr_id": corr_id, "parent_eci" : meta:eci}
+      // }
+      //)  
+    always {
+      //  reset the reports received count
+      ent:reports_count := 0;
 
+      //  TODO:  remove this later, for debuggin
+      //ent:fleet_reports := {}
+    }
+  }
 
 
 
@@ -313,14 +369,22 @@ ruleset manage_fleet {
       ent:reports_count := reports_received;
       //  TODO:  store report
 
-      ent:fleet_reports := ent:fleet_reports.defaultsTo({});
-      current_report_group = ent:fleet_reports[corr_id]["trips"];
-      current_report_group = current_report_group.append(report);
-      
 
-      //ent:fleet_reports[corr_id]["vehicles"] = num_vehicles;
-      //ent:fleet_reports[corr_id]["responding"] = reports_received;
-      //ent:fleet_reports[corr_id]["trips"] = current_report_group;
+      ent:fleet_reports := ent:fleet_reports.defaultsTo({});
+      report_obj = ent:fleet_reports[corr_id];
+      report_obj = report_obj.defaultsTo({});
+      current_report_group = report_obj["trips"];
+      current_report_group = current_report_group.defaultsTo([]);
+      current_report_group = current_report_group.append(report);
+
+      report_obj["vehicles"] = num_vehicles;
+      report_obj["responding"] = reports_received;
+      report_obj["trips"] = current_report_group.klog(report_obj);
+
+      ent:fleet_reports := ent:fleet_reports.put([corr_id], report_obj);
+
+      ent:all_report_cids := ent:all_report_cids.defaultsTo([]);
+      ent:all_report_cids :=  ent:all_report_cids.append(corr_id);
     }
   }
 
@@ -331,12 +395,21 @@ ruleset manage_fleet {
     select when fleet get_report
     pre {
        reports = ent:fleet_reports.defaultsTo({})
+       //reports_count = ent:reports_count.defaultsTo(0)
     }
     send_directive("reports") with reports = reports
   }
 
 
 
+
+
+  rule reset_report {
+    select when fleet reset_report
+    fired {
+      ent:fleet_reports := {}
+    }
+  }
 
 
 

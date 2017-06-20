@@ -56,7 +56,7 @@ ruleset vehicle_profile {
 
 
 
-  rule all_rulesets_added {
+  rule v_prof_ruleset_added {
     //  TODO:  need to avoid race conditions and only run this after rules are installed
     select when pico ruleset_added where rid == "vehicle_profile"
     pre {
@@ -66,22 +66,72 @@ ruleset vehicle_profile {
       parent_eci = event:attr("parent_eci")
 
     }
-      event:send(
-        { "eci": parent_eci , "eid": "asking_for_subscription",
-        "domain": "pico", "type": "child_ready_for_subscription",
-        "attrs": { "child_eci": meta:eci, "vehicle_id" : vehicle_id } } )
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "Subscriptions", "vehicle_id": vehicle_id } } );
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "vehicle_profile", "vehicle_id": vehicle_id, "vin" : vin, "long_threshold" : long_trip_threshold, "parent_eci" : meta:eci } } );
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "track_trips", "vehicle_id": vehicle_id } } );
+      //event:send(
+      //  { "eci": the_vehicle.eci, "eid": "install-ruleset",
+      //  "domain": "pico", "type": "new_ruleset",
+      //  "attrs": { "rid": "trip_store", "vehicle_id": vehicle_id } } );
+
     fired {
-      //  TODO:  I need to fire this on the new child pico
-      
       //  set the vehicle_id, this will never be changed until the vehicle is deleted
       ent:vehicle_id := vehicle_id;
 
       raise car event "profile_updated"
         attributes { "vin": vin, "long_trip_threshold" : long};
+      raise pico event "new_ruleset"
+        attributes { "rid": "Subscriptions", "vehicle_id": vehicle_id, "parent_eci" : parent_eci };
     
     }
   }
 
+
+
+  rule sub_ruleset_added {
+    select when pico ruleset_added where rid == "Subscriptions"
+    pre {
+      parent_eci = event:attr("parent_eci")
+    }
+    fired {
+      raise pico event "new_ruleset"
+        attributes { "rid": "track_trips", "vehicle_id": vehicle_id, "parent_eci" : parent_eci };
+    }
+  }
+
+  rule track_ruleset_added {
+    select when pico ruleset_added where rid == "track_trips"
+    pre {
+      parent_eci = event:attr("parent_eci")
+    }
+    fired {
+      raise pico event "new_ruleset"
+        attributes { "rid": "trip_store", "vehicle_id": vehicle_id, "parent_eci" : parent_eci };
+    }
+  }
+
+  rule all_rulesets_added {
+    select when pico ruleset_added where rid == "trip_store"
+    pre {
+      parent_eci = event:attr("parent_eci")
+    }
+    //  this will ask for a subscription now that all rules are installed
+    event:send(
+      { "eci": parent_eci , "eid": "asking_for_subscription",
+      "domain": "pico", "type": "child_ready_for_subscription",
+      "attrs": { "child_eci": meta:eci, "vehicle_id" : vehicle_id } } )
+    fired {
+    }
+  }
 
 
 
