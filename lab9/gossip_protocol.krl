@@ -69,7 +69,7 @@ ruleset gossip_protocol {
       schedule:remove(id_to_delete);
     always {
       //  this fires every second
-      schedule notification event "heartbeat" repeat "10  *  * * * *"
+      schedule notification event "heartbeat" repeat "*/1  *  * * * *"
         attributes event:attrs()
     }
   }
@@ -145,14 +145,31 @@ ruleset gossip_protocol {
           channel_type = "subscription"
           subscriber_eci = other_eci      
     }    
+  }
 
+  rule on_switch_test {
+    select when chat new_message
+    if ent:net_status.defaultsTo("on") == "on" then 
+      noop()
+    fired {
+      raise chat event "new_message_sub"
+        attributes event:attrs()
+    }
+  }
 
+  rule on_switch_test_origin {
+    select when chat new_origin_message
+    if ent:net_status.defaultsTo("on") == "on" then 
+      noop()
+    fired {
+      raise chat event "new_origin_message_sub"
+        attributes event:attrs()
+    }
   }
 
 
-
   rule new_seen_message {
-    select when chat new_message where message_type == "seen"
+    select when chat new_message_sub where message_type == "seen"
     pre {
       sender_eci = event:attr("sender_eci")
 
@@ -199,7 +216,7 @@ ruleset gossip_protocol {
 
 
   rule new_rumor_message {
-    select when chat new_message where message_type == "rumor"
+    select when chat new_message_sub where message_type == "rumor"
     pre {
       rumor_body = event:attr("body")
       //  TODO:  this seems to struggle receiving JSON??
@@ -232,7 +249,7 @@ ruleset gossip_protocol {
 
 
   rule add_new_chat_message {
-    select when chat new_origin_message
+    select when chat new_origin_message_sub
     pre {
       origin_sequence_number = ent:origin_sequence_number.defaultsTo(-1)
       origin_sequence_number = (origin_sequence_number.typeof() == "Number") => origin_sequence_number | origin_sequence_number.as("Number")
@@ -283,13 +300,27 @@ ruleset gossip_protocol {
     send_directive("stored_chat") with stored_messages = ent:stored_messages.defaultsTo({}) last_seen = ent:last_seq_seen.defaultsTo({})
   }
 
+  rule turn_network_on {
+    select when process on
+    always {
+      ent:net_status := "on"
+    }
+  }
 
+
+  rule turn_network_off {
+    select when process off
+    always {
+      ent:net_status := "off"
+    }
+  }
 
   rule reset_messages {
     select when chat reset_messages
     pre {
     }
     always {
+      ent:net_status := "on";
       ent:stored_messages := {};
       ent:origin_sequence_number := -1;
       ent:last_seq_seen := {};
