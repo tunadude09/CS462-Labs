@@ -29,7 +29,8 @@ ruleset flower_delivery_network_vehicle {
     }
 
     prepare_message = function (message_type_int) {
-      (message_type_int == 0) => get_seen_body() | get_random_message_body();
+      message = (message_type_int == 0) => get_seen_body() | get_random_message_body();
+      (message.isnull() || message == {}) => "" | message
     }
 
     get_stored_job_keys = function() {
@@ -97,7 +98,7 @@ ruleset flower_delivery_network_vehicle {
       schedule:remove(id_to_delete);
     always {
       //  this fires every second
-      schedule notification event "heartbeat" repeat "*/20  *  * * * *"
+      schedule notification event "heartbeat" repeat "*/1  *  * * * *"
         attributes event:attrs()
     }
   }
@@ -114,16 +115,16 @@ ruleset flower_delivery_network_vehicle {
   rule heartbeat {
     select when notification heartbeat
     pre {
-    //  subscriber = get_peer();
-    //  message_type_int = random:integer(0,1);
-    //  message = prepare_message(message_type_int).klog(subscriber);
-    //  message_type = (message_type_int == 0) => "seen" | "rumor"; 
+      subscriber = get_peer();
+      message_type_int = random:integer(0,1);
+      message = prepare_message(message_type_int).klog(subscriber);
+      message_type = (message_type_int == 0) => "seen" | "rumor"; 
     }
-    //send_directive("heartbeat") with message = message type = message_type subscriber = subscriber;
-    //event:send(
-    //  { "eci": subscriber, "eid": "message_passed",
-    //  "domain": "flower", "type": "new_message",
-    //  "attrs": { "message_type": message_type, "body": message, "sender_eci" : meta:eci, "random" : true } } )      
+    //send_directive("heartbeat") with message = message type = message_type subscriber = subscriber
+    event:send(
+      { "eci": subscriber, "eid": "message_passed",
+      "domain": "flower", "type": "new_message",
+      "attrs": { "message_type": message_type, "body": message, "sender_eci" : meta:eci, "random" : true } } )      
     fired {
       raise vehicle event "manage_jobs"
         attributes event:attrs();
@@ -194,8 +195,8 @@ ruleset flower_delivery_network_vehicle {
       ent:profile_job := claimed_job_id;
 
       //  raise this after the local jobs database has been updated
-      raise heartbeat event "ready_to_pass_messages"
-        attributes event:attrs();
+      //raise heartbeat event "ready_to_pass_messages"
+      //  attributes event:attrs();
     }
   }
 
@@ -236,8 +237,8 @@ ruleset flower_delivery_network_vehicle {
       ent:profile_finish_timestamp := new_finish_timestamp;
 
       //  raise this after the local jobs database has been updated
-      raise heartbeat event "ready_to_pass_messages"
-        attributes event:attrs();
+      //raise heartbeat event "ready_to_pass_messages"
+      //  attributes event:attrs();
     }
   }
 
@@ -419,7 +420,7 @@ ruleset flower_delivery_network_vehicle {
       last_update_timestamp = rumor_body["delivery"]["last_update_timestamp"].as("Number")
 
 
-      delivery_completed = (ent:job_directory[job_id].notnull() && ((ent:job_directory[job_id]["delivery"]["status"] == "picked_up") || (ent:job_directory[job_id]["delivery"]["status"] == "delivered") || ((ent:job_directory[job_id]["delivery"]["status"] == "claimed") && (status == "available"))))
+      delivery_completed = ((not ent:job_directory[job_id].isnull()) && ((ent:job_directory[job_id]["delivery"]["status"] == "picked_up") || (ent:job_directory[job_id]["delivery"]["status"] == "delivered") || ((ent:job_directory[job_id]["delivery"]["status"] == "claimed") && (status == "available"))))
 
       job = {"pickup_x":pickup_x, "pickup_y":pickup_y, "dropoff_x":dropoff_x, "dropoff_y":dropoff_y, "min_mpg":min_mpg, "min_experience":min_experience, "max_distance":max_distance, "delivery_time":delivery_time, "delivery" : {"status":status, "driver_id":driver_id, "driver_x":driver_x, "driver_y":driver_y}, "last_update_timestamp":last_update_timestamp}
       last_seq_seen = {"driver_id":job["delivery"]["driver_id"], "last_update_timestamp":job["last_update_timestamp"] , "driver_x":job["delivery"]["driver_x"], "driver_y":job["delivery"]["driver_y"]}
