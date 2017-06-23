@@ -107,7 +107,7 @@ ruleset flower_delivery_network_store {
 
 
   rule add_new_delivery_job {
-    select when flower new_delivery_job
+    select when store new_delivery_job
     pre {
        peer_eci = get_peer()
 
